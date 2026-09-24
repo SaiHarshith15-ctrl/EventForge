@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Minus, Plus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import SuccessCheck from './SuccessCheck';
@@ -12,10 +11,10 @@ import { bookingsApi } from '../../api/bookings.api';
 import { useAuthStore } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 
-const STEPS = ['Ticket', 'Quantity', 'Summary', 'Payment'];
+const STEPS = ['Ticket', 'Quantity', 'Summary'];
 
 export default function BookingModal({ event, onClose }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [ticketIdx, setTicketIdx] = useState(0);
@@ -31,29 +30,95 @@ export default function BookingModal({ event, onClose }) {
         <p className="text-sm text-ink-soft mb-5">Create a free account or sign in to book tickets for this event.</p>
         <Button className="w-full" onClick={() => { onClose(); navigate('/login'); }}>Go to login</Button>
       </Modal>
+
     );
   }
 
   const ticket = event.tickets[ticketIdx];
   const total = ticket ? ticket.price * qty : 0;
 
-  const handlePay = async () => {
-    setLoading(true);
+  const finishAsSimulated = async () => {
     try {
       const res = await bookingsApi.simulatePayment({ eventId: event._id, ticketTypeId: ticket._id, quantity: qty });
       setBooking(res.data);
       fireConfetti();
-      setStep(4);
+      setStep(3);
     } catch (err) {
-      toast.error(err.message || 'Payment failed');
+      toast.error(err.message || 'Booking failed');
     } finally {
       setLoading(false);
     }
   };
 
+  const handlePay = async () => {
+    setLoading(true);
+    try {
+      // 1. Ask backend to create an order. Backend decides: free ticket, no Razorpay
+      // configured (dev/demo), or a real Razorpay order.
+      const orderRes = await bookingsApi.createOrder({ eventId: event._id, ticketTypeId: ticket._id, quantity: qty });
+      const data = orderRes.data;
+
+      if (data.free || data.simulated) {
+        await finishAsSimulated();
+        return;
+      }
+
+      if (!window.Razorpay) {
+        toast.error('Payment widget failed to load. Check your connection and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Open Razorpay Checkout using the order Razorpay itself created
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.order.amount,
+        currency: data.order.currency,
+        order_id: data.order.id,
+        name: 'EventForge',
+        description: `${event.name} — ${ticket.name} × ${qty}`,
+        prefill: { name: user?.name, email: user?.email, contact: user?.phone },
+        theme: { color: '#6C4CF1' },
+        handler: async (response) => {
+          // 3. Verify the signature on the backend, then finalize the booking
+          try {
+            const verifyRes = await bookingsApi.verifyPayment({
+              eventId: event._id,
+              ticketTypeId: ticket._id,
+              quantity: qty,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            setBooking(verifyRes.data);
+            fireConfetti();
+            setStep(3);
+          } catch (err) {
+            toast.error(err.message || 'Payment verification failed');
+          } finally {
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+      });
+
+      rzp.on('payment.failed', (resp) => {
+        toast.error(resp.error?.description || 'Payment failed');
+        setLoading(false);
+      });
+
+      rzp.open();
+    } catch (err) {
+      toast.error(err.message || 'Could not start payment');
+      setLoading(false);
+    }
+  };
+
   return (
-    <Modal open title={step < 4 ? `Book "${event.name}"` : undefined} onClose={onClose} size={step === 4 ? 'sm' : 'md'}>
-      {step < 4 && (
+    <Modal open title={step < 3 ? `Book "${event.name}"` : undefined} onClose={onClose} size={step === 3 ? 'sm' : 'md'}>
+      {step < 3 && (
         <div className="flex gap-1.5 mb-6">
           {STEPS.map((label, i) => (
             <div key={label} className="flex-1">
@@ -66,6 +131,7 @@ export default function BookingModal({ event, onClose }) {
 
       <AnimatePresence mode="wait">
         {step === 0 && (
+
           <motion.div key="s0" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} className="space-y-2">
             {event.tickets.map((t, i) => (
               <button
@@ -98,6 +164,7 @@ export default function BookingModal({ event, onClose }) {
               </button>
             </div>
             <div className="bg-violet-50 rounded-xl p-4 flex justify-between text-sm font-semibold">
+
               <span>{ticket.name} × {qty}</span>
               <span>{fmtINR(total)}</span>
             </div>
@@ -118,30 +185,19 @@ export default function BookingModal({ event, onClose }) {
               <div className="flex justify-between"><span className="text-ink-soft">Quantity</span><span className="font-semibold">{qty}</span></div>
               <div className="flex justify-between pt-2 border-t border-line"><span className="font-bold">Total</span><span className="font-display font-bold text-lg">{fmtINR(total)}</span></div>
             </div>
+            {total > 0 && <p className="text-[11px] text-ink-faint">You'll pay securely via Razorpay in the next step.</p>}
           </motion.div>
         )}
 
-        {step === 3 && (
-          <motion.div key="s3" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} className="text-center space-y-4">
-            <div className="bg-violet-50 rounded-2xl p-6">
-              <p className="text-sm font-semibold text-ink mb-3">Scan to pay via UPI</p>
-              <div className="bg-white p-3 rounded-xl inline-block">
-                <QRCodeSVG value={`upi://pay?am=${total}&pn=EventForge`} size={140} />
-              </div>
-              <p className="text-xs text-ink-soft mt-3">Amount: {fmtINR(total)}</p>
-            </div>
-            <p className="text-[11px] text-ink-faint">This is a demo checkout — click below to simulate a successful payment.</p>
-          </motion.div>
-        )}
-
-        {step === 4 && booking && (
-          <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-2">
+        {step === 3 && booking && (
+          <motion.div key="s3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-2">
             <SuccessCheck />
             <h3 className="font-display font-bold text-xl text-ink mt-4">Booking Confirmed!</h3>
             <p className="text-sm text-ink-soft mt-1">Your ticket has been generated.</p>
             <div className="mt-3 inline-block bg-mint-50 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full font-mono">
               {booking.bookingRef}
             </div>
+
             <div className="flex gap-2 mt-6">
               <Button variant="outline" className="flex-1" onClick={onClose}>Close</Button>
               <Button className="flex-1" onClick={() => { onClose(); navigate('/app/tickets'); }}>View Ticket</Button>
@@ -150,14 +206,14 @@ export default function BookingModal({ event, onClose }) {
         )}
       </AnimatePresence>
 
-      {step < 4 && (
+      {step < 3 && (
         <div className="flex gap-2 mt-6">
           {step > 0 && <Button variant="outline" onClick={() => setStep((s) => s - 1)}>Back</Button>}
-          {step < 3 ? (
+          {step < 2 ? (
             <Button className="flex-1" onClick={() => setStep((s) => s + 1)}>Continue</Button>
           ) : (
             <Button className="flex-1" onClick={handlePay} loading={loading} icon={loading ? Loader2 : undefined}>
-              Simulate Payment Success
+              {total === 0 ? 'Confirm Free Booking' : `Pay ${fmtINR(total)}`}
             </Button>
           )}
         </div>
