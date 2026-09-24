@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-paper text-ink font-sans antialiased; }
+  h1, h2, h3, h4, .font-display { font-family: "Space Grotesk", sans-serif; }
+  ::selection { background: #6C4CF1; color: #fff; }
+  :focus-visible { outline: 2px solid #6C4CF1; outline-offset: 2px; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  .ticket-notch {
+    height: 18px;
+    background-image: radial-gradient(circle 7px, var(--notch-bg, #F6F4FC) 7px, transparent 7.5px);
+    background-size: 22px 22px;
+    background-position: -3px center;
+    background-repeat: repeat-x;
+    position: relative;
+  }
+  .ticket-notch::before, .ticket-notch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 16px; height: 16px;
+    border-radius: 999px;
+    background: var(--notch-bg, #F6F4FC);
+    transform: translateY(-50%);
+  }
+  .ticket-notch::before { left: -8px; }
+  .ticket-notch::after { right: -8px; }
+
+  .perf-line {
+    background-image: repeating-linear-gradient(to right, #C9BEFB 0 6px, transparent 6px 12px);
+    height: 1px;
+  }
+
+  .glass {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .grain { position: relative; }
+  .grain::after {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none; opacity: 0.4;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.5) 1px, transparent 0);
+    background-size: 3px 3px;
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(90deg, #EEEAFB 0%, #F8F6FE 40%, #EEEAFB 80%);
+    background-size: 800px 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #C9BEFB; border-radius: 999px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+}
