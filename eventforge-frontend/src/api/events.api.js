@@ -14,4 +14,15 @@ export const eventsApi = {
   addSchedule: (id, payload) => api.post(`/events/${id}/schedule`, payload).then((r) => r.data),
   removeSchedule: (id, itemId) => api.delete(`/events/${id}/schedule/${itemId}`).then((r) => r.data),
   addReview: (id, payload) => api.post(`/events/${id}/reviews`, payload).then((r) => r.data),
+
+    uploadCover: (id, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return api.put(`/events/${id}/cover`, fd).then((r) => r.data);
+  },
+  addSpeaker: (id, speakerId) => api.post(`/events/${id}/speakers`, { speakerId }).then((r) => r.data),
+  removeSpeaker: (id, speakerId) => api.delete(`/events/${id}/speakers/${speakerId}`).then((r) => r.data),
+  addSponsor: (id, sponsorId, tier) => api.post(`/events/${id}/sponsors`, { sponsorId, tier }).then((r) => r.data),
+  removeSponsor: (id, sponsorId) => api.delete(`/events/${id}/sponsors/${sponsorId}`).then((r) => r.data),
+  
 };

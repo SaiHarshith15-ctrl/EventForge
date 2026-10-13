@@ -268,6 +268,8 @@ const addReview = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, message: 'Review added', data: review });
 });
 
+
+
 module.exports = {
   getEvents,
   getEvent,
@@ -283,3 +285,60 @@ module.exports = {
   removeScheduleItem,
   addReview,
 };
+
+const Speaker = require('../models/Speaker');
+const Sponsor = require('../models/Sponsor');
+
+const assertOwner = (event, user) => {
+  if (!event) throw new ApiError(404, 'Event not found');
+  if (event.organizer.toString() !== user._id.toString() && user.role !== 'admin') {
+    throw new ApiError(403, 'Not authorized');
+  }
+};
+
+const addSpeakerToEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+  assertOwner(event, req.user);
+  const { speakerId } = req.body;
+  const speaker = await Speaker.findById(speakerId);
+  if (!speaker) throw new ApiError(404, 'Speaker not found');
+  if (!event.speakers.some((s) => s.toString() === speakerId)) event.speakers.push(speakerId);
+  event.speakerConfirmed = true;
+  await event.save();
+  res.status(201).json({ success: true, message: 'Speaker added', data: event.speakers });
+});
+
+const removeSpeakerFromEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+  assertOwner(event, req.user);
+  event.speakers = event.speakers.filter((s) => s.toString() !== req.params.speakerId);
+  event.speakerConfirmed = event.speakers.length > 0;
+  await event.save();
+  res.json({ success: true, message: 'Speaker removed', data: event.speakers });
+});
+
+const addSponsorToEvent = asyncHandler(async (req, res) => {
+
+  const event = await Event.findById(req.params.id);
+  assertOwner(event, req.user);
+  const { sponsorId, tier } = req.body;
+  const sponsor = await Sponsor.findById(sponsorId);
+  if (!sponsor) throw new ApiError(404, 'Sponsor not found');
+  if (!event.sponsors.some((s) => s.sponsor.toString() === sponsorId)) {
+    event.sponsors.push({ sponsor: sponsorId, tier: tier || sponsor.tier });
+  }
+  event.sponsorConfirmed = true;
+  await event.save();
+  res.status(201).json({ success: true, message: 'Sponsor added', data: event.sponsors });
+});
+
+const removeSponsorFromEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+  assertOwner(event, req.user);
+  event.sponsors = event.sponsors.filter((s) => s.sponsor.toString() !== req.params.sponsorId);
+  event.sponsorConfirmed = event.sponsors.length > 0;
+  await event.save();
+  res.json({ success: true, message: 'Sponsor removed', data: event.sponsors });
+});
+
+Object.assign(module.exports, { addSpeakerToEvent, removeSpeakerFromEvent, addSponsorToEvent, removeSponsorFromEvent });

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const speakerSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true, trim: true },
     role: { type: String, default: '' },
     company: { type: String, default: '' },

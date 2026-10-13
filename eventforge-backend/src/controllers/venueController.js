@@ -7,9 +7,10 @@ const uploadBufferToCloudinary = require('../utils/uploadToCloudinary');
 // @route   GET /api/venues
 // @access  Public
 const getVenues = asyncHandler(async (req, res) => {
-  const { search = '', location, minCapacity, maxPrice, owner, page = 1, limit = 20 } = req.query;
+  const { search = '', location, minCapacity, maxPrice, owner, mine, page = 1, limit = 20 } = req.query;
   const query = { isActive: true };
   if (owner) query.owner = owner;
+  if (mine && req.user) query.owner = req.user._id;
   if (location) query.location = new RegExp(location, 'i');
   if (minCapacity) query.capacity = { $gte: Number(minCapacity) };
   if (maxPrice) query.pricePerDay = { ...(query.pricePerDay || {}), $lte: Number(maxPrice) };
@@ -35,7 +36,7 @@ const getVenue = asyncHandler(async (req, res) => {
 // @access  Private/VenueOwner,Admin
 const createVenue = asyncHandler(async (req, res) => {
   const { name, location, address, capacity, pricePerDay, amenities, description } = req.body;
-  if (!name || !location || !capacity || !pricePerDay) {
+  if (!name || !location || !capacity || pricePerDay === undefined || pricePerDay === null || pricePerDay === '') {
     throw new ApiError(400, 'name, location, capacity and pricePerDay are required');
   }
   const venue = await Venue.create({

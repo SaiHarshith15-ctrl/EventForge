@@ -5,6 +5,11 @@ export const sponsorsApi = {
   get: (id) => api.get(`/sponsors/${id}`).then((r) => r.data),
   create: (payload) => api.post('/sponsors', payload).then((r) => r.data),
   updateMe: (payload) => api.put('/sponsors/me', payload).then((r) => r.data),
+  uploadLogo: (id, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return api.put(`/sponsors/${id}/logo`, fd).then((r) => r.data);
+  },
 };
 
 export const sponsorRequestsApi = {

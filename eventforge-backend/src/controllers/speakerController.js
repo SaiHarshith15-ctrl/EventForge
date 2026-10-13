@@ -28,12 +28,18 @@ const getSpeaker = asyncHandler(async (req, res) => {
 // @route   POST /api/speakers
 // @access  Private/Speaker,Admin
 const createSpeaker = asyncHandler(async (req, res) => {
-  const existing = await Speaker.findOne({ user: req.user._id });
-  if (existing) throw new ApiError(409, 'Speaker profile already exists');
+  const isSelf = req.user.role === 'speaker';
+  if (isSelf) {
+    const existing = await Speaker.findOne({ user: req.user._id });
+    if (existing) throw new ApiError(409, 'Speaker profile already exists');
+  }
 
   const { name, role, company, expertise, bio, socialLinks } = req.body;
+  if (!isSelf && !name) throw new ApiError(400, 'Speaker name is required');
+
   const speaker = await Speaker.create({
-    user: req.user._id,
+    user: isSelf ? req.user._id : undefined,
+    createdBy: req.user._id,
     name: name || req.user.name,
     role, company, bio, socialLinks,
     expertise: Array.isArray(expertise) ? expertise : String(expertise || '').split(',').map((s) => s.trim()).filter(Boolean),
@@ -77,7 +83,8 @@ const uploadSpeakerAvatar = asyncHandler(async (req, res) => {
 const deleteSpeaker = asyncHandler(async (req, res) => {
   const speaker = await Speaker.findById(req.params.id);
   if (!speaker) throw new ApiError(404, 'Speaker not found');
-  if (speaker.user?.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  const mine = [speaker.user, speaker.createdBy].some((u) => u && u.toString() === req.user._id.toString());
+  if (!mine && req.user.role !== 'admin') {
     throw new ApiError(403, 'Not authorized');
   }
   await speaker.deleteOne();
@@ -88,3 +95,17 @@ module.exports = {
   getSpeakers, getSpeaker, createSpeaker, updateMySpeakerProfile,
   updateAvailability, uploadSpeakerAvatar, deleteSpeaker,
 };
+
+
+const uploadSpeakerPhoto = asyncHandler(async (req, res) => {
+  const speaker = await Speaker.findById(req.params.id);
+  if (!speaker) throw new ApiError(404, 'Speaker not found');
+  const mine = [speaker.user, speaker.createdBy].some((u) => u && u.toString() === req.user._id.toString());
+  if (!mine && req.user.role !== 'admin') throw new ApiError(403, 'Not authorized');
+  if (!req.file) throw new ApiError(400, 'No image provided');
+  const result = await uploadBufferToCloudinary(req.file.buffer, 'eventforge/speakers');
+  speaker.avatar = result.secure_url;
+  await speaker.save();
+  res.json({ success: true, message: 'Photo updated', data: speaker });
+});
+module.exports.uploadSpeakerPhoto = uploadSpeakerPhoto;

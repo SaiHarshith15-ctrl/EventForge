@@ -26,4 +26,10 @@ router.delete('/:id/schedule/:itemId', protect, authorize('organizer', 'admin'),
 
 router.post('/:id/reviews', protect, authorize('attendee'), addReview);
 
+const ctrl = require('../controllers/eventController');
+router.post('/:id/speakers', protect, authorize('organizer', 'admin'), ctrl.addSpeakerToEvent);
+router.delete('/:id/speakers/:speakerId', protect, authorize('organizer', 'admin'), ctrl.removeSpeakerFromEvent);
+router.post('/:id/sponsors', protect, authorize('organizer', 'admin'), ctrl.addSponsorToEvent);
+router.delete('/:id/sponsors/:sponsorId', protect, authorize('organizer', 'admin'), ctrl.removeSponsorFromEvent);
+
 module.exports = router;

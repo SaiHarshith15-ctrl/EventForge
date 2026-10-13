@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Building2, Search } from 'lucide-react';
 import { venuesApi, venueRequestsApi } from '../../api/venues.api';
+import { eventsApi } from '../../api/events.api';
+import { useAuthStore } from '../../store/authStore';
 import VenueCard from '../../components/shared/VenueCard';
 import EmptyState from '../../components/ui/EmptyState';
 import Button from '../../components/ui/Button';
@@ -14,6 +16,14 @@ export default function OrgVenues() {
   const debounced = useDebounce(search);
   const [venues, setVenues] = useState(null);
   const [requests, setRequests] = useState([]);
+  const { user } = useAuthStore();
+  const [myEvents, setMyEvents] = useState([]);
+  const [eventId, setEventId] = useState('');
+  useEffect(() => {
+    eventsApi.list({ organizer: user._id, includeUnpublished: true, limit: 50 })
+      .then((r) => { setMyEvents(r.data); if (r.data[0]) setEventId(r.data[0]._id); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     venuesApi.list({ search: debounced || undefined, limit: 24 }).then((r) => setVenues(r.data)).catch(() => setVenues([]));
@@ -24,7 +34,8 @@ export default function OrgVenues() {
 
   const requestVenue = async (venueId) => {
     try {
-      await venueRequestsApi.create({ venueId });
+      if (!eventId) return toast.error('Create an event first, then pick it above');
+      await venueRequestsApi.create({ venueId, eventId });
       toast.success('Request sent to venue owner');
       loadRequests();
     } catch (err) { toast.error(err.message); }
@@ -53,6 +64,14 @@ export default function OrgVenues() {
           </div>
         </div>
       )}
+
+      <div className="max-w-md">
+        <label className="block text-sm font-semibold text-ink mb-1.5">Request venue for event</label>
+        <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-line text-sm bg-white">
+          {myEvents.length === 0 && <option value="">No events yet</option>}
+          {myEvents.map((ev) => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+        </select>
+      </div>
 
       <div className="relative max-w-md">
         <Search className="w-4 h-4 text-ink-faint absolute left-4 top-1/2 -translate-y-1/2" />

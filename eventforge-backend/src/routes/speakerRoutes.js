@@ -10,10 +10,11 @@ const {
 
 router.get('/', getSpeakers);
 router.get('/:id', getSpeaker);
-router.post('/', protect, authorize('speaker', 'admin'), createSpeaker);
+router.post('/', protect, authorize('speaker', 'organizer', 'admin'), createSpeaker);
 router.put('/me', protect, authorize('speaker'), updateMySpeakerProfile);
 router.put('/me/availability', protect, authorize('speaker'), updateAvailability);
 router.put('/me/avatar', protect, authorize('speaker'), upload.single('avatar'), uploadSpeakerAvatar);
-router.delete('/:id', protect, authorize('speaker', 'admin'), deleteSpeaker);
+router.delete('/:id', protect, authorize('speaker', 'organizer', 'admin'), deleteSpeaker);
+router.put('/:id/avatar', protect, authorize('speaker', 'organizer', 'admin'), upload.single('image'), require('../controllers/speakerController').uploadSpeakerPhoto);
 
 module.exports = router;

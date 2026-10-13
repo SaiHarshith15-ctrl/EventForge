@@ -3,8 +3,7 @@ import { MapPin, Calendar, Clock, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { fmtDateShort, fmtINR } from '../../utils/format';
 import Badge from '../ui/Badge';
-
-const FALLBACK_IMG = 'https://images.unsplash.com/photo-1540575467063-17843e7da652?w=600&q=70';
+import SafeImage from './SafeImage';
 
 export default function EventCard({ event, onToggleSave, saved = false, index = 0 }) {
   const lowestTicket = event.tickets?.[0];
@@ -22,10 +21,8 @@ export default function EventCard({ event, onToggleSave, saved = false, index = 
       className="group relative bg-surface border border-line rounded-2xl overflow-hidden shadow-soft hover:shadow-lift transition-shadow"
     >
       <Link to={`/events/${event._id}`} className="block">
-        <div
-          className="h-40 bg-cover bg-center relative"
-          style={{ backgroundImage: `url(${event.coverImage || FALLBACK_IMG})` }}
-        >
+        <div className="h-40 relative overflow-hidden">
+          <SafeImage src={event.coverImage} kind="event" alt={event.name} className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
           <Badge tone="ink" className="absolute top-3 left-3 backdrop-blur-sm bg-ink/70">{event.category}</Badge>
           {onToggleSave && (

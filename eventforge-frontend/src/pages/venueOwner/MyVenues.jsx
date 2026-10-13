@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Building2, Plus, Trash2, Pencil } from 'lucide-react';
+import { Building2, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
 import { venuesApi } from '../../api/venues.api';
 import VenueCard from '../../components/shared/VenueCard';
 import EmptyState from '../../components/ui/EmptyState';
@@ -10,22 +9,35 @@ import Modal from '../../components/ui/Modal';
 import { Input, Textarea } from '../../components/ui/Input';
 import { CITIES } from '../../utils/constants';
 
+const EMPTY = { name: '', location: 'Hyderabad', capacity: 100, pricePerDay: 0, amenities: '' };
+
 export default function MyVenues() {
   const [venues, setVenues] = useState(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', location: 'Hyderabad', capacity: 100, pricePerDay: 0, amenities: '' });
+  const [file, setFile] = useState(null);
+  const [form, setForm] = useState(EMPTY);
 
   const load = () => venuesApi.list({ mine: true, limit: 50 }).then((r) => setVenues(r.data)).catch(() => setVenues([]));
   useEffect(() => { load(); }, []);
 
   const submit = async () => {
+    if (!form.name.trim()) return toast.error('Venue name is required');
     setSaving(true);
     try {
-      await venuesApi.create({ ...form, amenities: form.amenities.split(',').map((a) => a.trim()).filter(Boolean) });
+      const res = await venuesApi.create({
+        ...form,
+        amenities: form.amenities.split(',').map((a) => a.trim()).filter(Boolean),
+      });
+      if (file) {
+
+        try { await venuesApi.uploadImage(res.data._id, file); }
+        catch (e) { toast.error('Venue saved, but photo upload failed: ' + e.message); }
+      }
       toast.success('Venue listed');
       setOpen(false);
-      setForm({ name: '', location: 'Hyderabad', capacity: 100, pricePerDay: 0, amenities: '' });
+      setForm(EMPTY);
+      setFile(null);
       load();
     } catch (err) {
       toast.error(err.message);
@@ -36,9 +48,11 @@ export default function MyVenues() {
 
   const remove = async (id) => {
     if (!confirm('Remove this venue listing?')) return;
-    await venuesApi.remove(id);
-    toast.success('Venue removed');
-    load();
+    try {
+      await venuesApi.remove(id);
+      toast.success('Venue removed');
+      load();
+    } catch (err) { toast.error(err.message); }
   };
 
   return (
@@ -49,6 +63,7 @@ export default function MyVenues() {
           <p className="text-ink-soft mt-1">Venues you've listed on EventForge.</p>
         </div>
         <Button icon={Plus} onClick={() => setOpen(true)}>List a Venue</Button>
+
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -79,6 +94,11 @@ export default function MyVenues() {
             <Input label="Price/day (₹)" type="number" min={0} value={form.pricePerDay} onChange={(e) => setForm({ ...form, pricePerDay: Number(e.target.value) })} />
           </div>
           <Textarea label="Amenities (comma separated)" value={form.amenities} onChange={(e) => setForm({ ...form, amenities: e.target.value })} placeholder="Parking, AV Setup, Catering" />
+          <div>
+            <label className="block text-sm font-semibold text-ink mb-1.5">Venue photo (optional)</label>
+
+            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-sm" />
+          </div>
           <Button className="w-full" loading={saving} onClick={submit}>List venue</Button>
         </div>
       </Modal>

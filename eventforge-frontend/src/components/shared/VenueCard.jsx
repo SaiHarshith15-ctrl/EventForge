@@ -1,13 +1,12 @@
 import { MapPin, Users } from 'lucide-react';
 import { fmtINR } from '../../utils/format';
 import Card from '../ui/Card';
-
-const FALLBACK = 'https://images.unsplash.com/photo-1519167758481-83f550d39cd3?w=600&q=70';
+import SafeImage from './SafeImage';
 
 export default function VenueCard({ venue, action }) {
   return (
     <Card hover className="overflow-hidden">
-      <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${venue.coverImage || venue.images?.[0] || FALLBACK})` }} />
+      <SafeImage src={venue.coverImage || venue.images?.[0]} kind="venue" alt={venue.name} className="w-full h-32 object-cover" />
       <div className="p-4 space-y-2">
         <h3 className="font-display font-bold text-ink line-clamp-1">{venue.name}</h3>
         <div className="flex gap-3 text-xs text-ink-soft">

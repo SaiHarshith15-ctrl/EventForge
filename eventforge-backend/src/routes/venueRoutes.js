@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, attachUserIfPresent } = require('../middleware/auth');
 const authorize = require('../middleware/role');
 const upload = require('../middleware/upload');
 const {
   getVenues, getVenue, createVenue, updateVenue, uploadVenueImage, deleteVenue,
 } = require('../controllers/venueController');
 
-router.get('/', getVenues);
+router.get('/', attachUserIfPresent, getVenues);
 router.get('/:id', getVenue);
 router.post('/', protect, authorize('venue_owner', 'admin'), createVenue);
 router.put('/:id', protect, authorize('venue_owner', 'admin'), updateVenue);

@@ -6,6 +6,11 @@ export const venuesApi = {
   create: (payload) => api.post('/venues', payload).then((r) => r.data),
   update: (id, payload) => api.put(`/venues/${id}`, payload).then((r) => r.data),
   remove: (id) => api.delete(`/venues/${id}`).then((r) => r.data),
+  uploadImage: (id, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return api.put(`/venues/${id}/image`, fd).then((r) => r.data);
+  },
 };
 
 export const venueRequestsApi = {

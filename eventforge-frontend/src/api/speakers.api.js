@@ -6,6 +6,11 @@ export const speakersApi = {
   create: (payload) => api.post('/speakers', payload).then((r) => r.data),
   updateMe: (payload) => api.put('/speakers/me', payload).then((r) => r.data),
   updateAvailability: (availability) => api.put('/speakers/me/availability', { availability }).then((r) => r.data),
+  uploadPhoto: (id, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return api.put(`/speakers/${id}/avatar`, fd).then((r) => r.data);
+  },
 };
 
 export const speakerInvitesApi = {
