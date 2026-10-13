@@ -42,8 +42,15 @@ const createSponsor = asyncHandler(async (req, res) => {
 });
 
 const updateMySponsorProfile = asyncHandler(async (req, res) => {
-  const sponsor = await Sponsor.findOne({ user: req.user._id });
-  if (!sponsor) throw new ApiError(404, 'Sponsor profile not found. Create one first.');
+  let sponsor = await Sponsor.findOne({ user: req.user._id });
+  if (!sponsor) {
+    sponsor = new Sponsor({
+      user: req.user._id,
+      createdBy: req.user._id,
+      name: req.body.name || req.user.company || req.user.name,
+      contactEmail: req.user.email,
+    });
+  }
   const allowed = ['name', 'tier', 'budget', 'contactEmail', 'logo'];
   allowed.forEach((f) => { if (req.body[f] !== undefined) sponsor[f] = req.body[f]; });
   if (req.body.benefits !== undefined) {

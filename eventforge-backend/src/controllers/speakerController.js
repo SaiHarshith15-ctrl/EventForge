@@ -48,8 +48,10 @@ const createSpeaker = asyncHandler(async (req, res) => {
 });
 
 const updateMySpeakerProfile = asyncHandler(async (req, res) => {
-  const speaker = await Speaker.findOne({ user: req.user._id });
-  if (!speaker) throw new ApiError(404, 'Speaker profile not found. Create one first.');
+  let speaker = await Speaker.findOne({ user: req.user._id });
+  if (!speaker) {
+    speaker = new Speaker({ user: req.user._id, createdBy: req.user._id, name: req.body.name || req.user.name });
+  }
 
   const allowed = ['name', 'role', 'company', 'bio', 'socialLinks', 'availability'];
   allowed.forEach((f) => { if (req.body[f] !== undefined) speaker[f] = req.body[f]; });
@@ -63,8 +65,8 @@ const updateMySpeakerProfile = asyncHandler(async (req, res) => {
 });
 
 const updateAvailability = asyncHandler(async (req, res) => {
-  const speaker = await Speaker.findOne({ user: req.user._id });
-  if (!speaker) throw new ApiError(404, 'Speaker profile not found');
+  let speaker = await Speaker.findOne({ user: req.user._id });
+  if (!speaker) speaker = new Speaker({ user: req.user._id, createdBy: req.user._id, name: req.user.name });
   speaker.availability = req.body.availability === 'Busy' ? 'Busy' : 'Available';
   await speaker.save();
   res.json({ success: true, message: 'Availability updated', data: speaker });

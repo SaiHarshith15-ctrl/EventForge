@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const authorize = require('../middleware/role');
 const upload = require('../middleware/upload');
+const asyncHandler = require('../middleware/asyncHandler');
 const {
   getSpeakers, getSpeaker, createSpeaker, updateMySpeakerProfile,
   updateAvailability, uploadSpeakerAvatar, deleteSpeaker,
