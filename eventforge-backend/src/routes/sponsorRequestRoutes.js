@@ -5,7 +5,7 @@ const authorize = require('../middleware/role');
 const upload = require('../middleware/upload');
 const { createSponsorRequest, getSponsorRequests, respondToSponsorRequest } = require('../controllers/sponsorRequestController');
 
-router.post('/', protect, authorize('sponsor', 'organizer', 'admin'), createSponsor);
+router.post('/', protect, authorize('sponsor'), createSponsorRequest);
 router.get('/', protect, getSponsorRequests);
 router.put('/:id/respond', protect, authorize('organizer', 'admin'), respondToSponsorRequest);
 router.delete('/:id', protect, authorize('sponsor', 'organizer', 'admin'), deleteSponsor);
