@@ -3,19 +3,15 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const authorize = require('../middleware/role');
 const upload = require('../middleware/upload');
-const asyncHandler = require('../middleware/asyncHandler');
 const {
-  getSpeakers, getSpeaker, createSpeaker, updateMySpeakerProfile,
-  updateAvailability, uploadSpeakerAvatar, deleteSpeaker,
-} = require('../controllers/speakerController');
+  getSponsors, getSponsor, createSponsor, updateMySponsorProfile, deleteSponsor, uploadSponsorLogo,
+} = require('../controllers/sponsorController');
 
-router.get('/', getSpeakers);
-router.get('/:id', getSpeaker);
-router.post('/', protect, authorize('speaker', 'organizer', 'admin'), createSpeaker);
-router.put('/me', protect, authorize('speaker'), updateMySpeakerProfile);
-router.put('/me/availability', protect, authorize('speaker'), updateAvailability);
-router.put('/me/avatar', protect, authorize('speaker'), upload.single('avatar'), uploadSpeakerAvatar);
-router.delete('/:id', protect, authorize('speaker', 'organizer', 'admin'), deleteSpeaker);
-router.put('/:id/avatar', protect, authorize('speaker', 'organizer', 'admin'), upload.single('image'), require('../controllers/speakerController').uploadSpeakerPhoto);
+router.get('/', getSponsors);
+router.get('/:id', getSponsor);
+router.post('/', protect, authorize('sponsor', 'organizer', 'admin'), createSponsor);
+router.put('/me', protect, authorize('sponsor'), updateMySponsorProfile);
+router.put('/:id/logo', protect, authorize('sponsor', 'organizer', 'admin'), upload.single('image'), uploadSponsorLogo);
+router.delete('/:id', protect, authorize('sponsor', 'organizer', 'admin'), deleteSponsor);
 
 module.exports = router;
