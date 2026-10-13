@@ -6,8 +6,8 @@ const { getSponsors, getSponsor, createSponsor, updateMySponsorProfile, deleteSp
 
 router.get('/', getSponsors);
 router.get('/:id', getSponsor);
-router.post('/', protect, authorize('sponsor', 'admin'), createSponsor);
+router.post('/', protect, authorize('sponsor', 'organizer','admin'), createSponsor);
 router.put('/me', protect, authorize('sponsor'), updateMySponsorProfile);
-router.delete('/:id', protect, authorize('sponsor', 'admin'), deleteSponsor);
+router.delete('/:id', protect, authorize('sponsor', 'organizer','admin'), deleteSponsor);
 
 module.exports = router;
